@@ -24,6 +24,7 @@ import (
 const (
 	timestamp string = "Timestamp"
 	duration string = "Duration"
+	structType string = "Struct"
 )
 
 // hashWellKnownType hashes proto messages that are Well-known types.
@@ -35,13 +36,16 @@ const (
 // defined within the proto library. As a result, special treatment while
 // calculating their hash is often (but not always) needed.
 func (hasher *objectHasher) hashWellKnownType(name string, sv reflect.Value) ([]byte, error) {
-	if name == timestamp {
+	switch name {
+	case timestamp:
 		return hasher.hashTimestamp(sv)
-	} else if name == duration {
+	case duration:
 		return hasher.hashDuration(sv)
+	case structType:
+		return hasher.hashStructType(sv)
+	default:
+		return nil, fmt.Errorf("Got a currently unsupported protobuf well-known type: %s", name)
 	}
-
-	return nil, fmt.Errorf("Got a currently unsupported protobuf well-known type: %s", name)
 }
 
 // hashTimestamp calculates the object hash of a google.protobuf.Timestamp.
@@ -110,4 +114,18 @@ func (hasher *objectHasher) hashDuration(sv reflect.Value) ([]byte, error) {
 	}
 
 	return hash(listIdentifier, b.Bytes())
+}
+
+func (hasher *objectHasher) hashStructType(sv reflect.Value) ([]byte, error) {
+	sk := sv.Kind()
+	if sk != reflect.Struct {
+		return nil, fmt.Errorf("Got a bad google.protobuf.Struct proto: %v. Expected a Struct, instead got a %s", sv, sk)
+	}
+
+	fieldsValue := sv.FieldByName("fields")
+	fk := fieldsValue.Kind()
+	if fk != reflect.Map {
+		return nil, fmt.Errorf("Got a google.protobuf.Struct proto with a bad '%s' field: %v. Expected an integer, instead got a %s", fieldsValue, sv, fk)
+	}
+	return hasher.hashStruct(fieldsValue)
 }

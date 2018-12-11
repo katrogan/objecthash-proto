@@ -144,7 +144,7 @@ func (hasher *objectHasher) hashMap(v reflect.Value, sf reflect.StructField, pro
 // the dererferenced message object.
 func (hasher *objectHasher) hashStruct(sv reflect.Value) ([]byte, error) {
 	name, ok := CheckWellKnownType(sv)
-	if ok {
+	if ok && name != structType{
 		return hasher.hashWellKnownType(name, sv)
 	}
 

@@ -41,8 +41,6 @@ func (hasher *objectHasher) hashWellKnownType(name string, sv reflect.Value) ([]
 		return hasher.hashTimestamp(sv)
 	case duration:
 		return hasher.hashDuration(sv)
-	case structType:
-		return hasher.hashStructType(sv)
 	default:
 		return nil, fmt.Errorf("Got a currently unsupported protobuf well-known type: %s", name)
 	}
@@ -114,18 +112,4 @@ func (hasher *objectHasher) hashDuration(sv reflect.Value) ([]byte, error) {
 	}
 
 	return hash(listIdentifier, b.Bytes())
-}
-
-func (hasher *objectHasher) hashStructType(sv reflect.Value) ([]byte, error) {
-	sk := sv.Kind()
-	if sk != reflect.Struct {
-		return nil, fmt.Errorf("Got a bad google.protobuf.Struct proto: %v. Expected a Struct, instead got a %s", sv, sk)
-	}
-
-	fieldsValue := sv.FieldByName("fields")
-	fk := fieldsValue.Kind()
-	if fk != reflect.Map {
-		return nil, fmt.Errorf("Got a google.protobuf.Struct proto with a bad '%s' field: %v. Expected an integer, instead got a %s", fieldsValue, sv, fk)
-	}
-	return hasher.hashStruct(fieldsValue)
 }
